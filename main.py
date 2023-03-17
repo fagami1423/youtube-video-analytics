@@ -226,8 +226,15 @@ def plot_bar(df):
     top_10_likes.plot.bar(x='youtubeId', y='viewCount', rot=0)
     plt.title('Top 10 videos with most views')
     plt.savefig('bottom_10_views.jpg')
-
-
+    
+def plot_sentiments(df):
+    #plot bar graph for top 10 videos with most positive compound sentiment using matplotlib
+    top_10_compound = df.sort_values(by='compound', ascending=False).head(10)
+    plt.figsize=(20,10)
+    plt.bar(top_10_compound['youtubeId'], top_10_compound['compound'])
+    plt.title('Top 10 videos with most positive compound sentiment')
+    plt.savefig('top_10_compound.jpg')
+    
 
 if __name__ == '__main__':
     # Read CSV file into pandas DataFrame and extract youtube ids 
@@ -274,6 +281,7 @@ if __name__ == '__main__':
     #Sentinment Analysis
     print("******Vader Sentiment Analysis******")
     df_comments = get_sentiment_score(df_comments)
+    plot_sentiments(df_comments)
     print(df_comments.head(5))
     
     
