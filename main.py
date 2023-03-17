@@ -9,6 +9,8 @@ Subject: Assignment 1
 import os
 import re, json
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
@@ -211,6 +213,21 @@ def get_stats(df):
     max_duration = get_max_duration(df)
     print("******Video with maximum duration******")
     print(max_duration)
+    
+def plot_bar(df):
+    #plot bar graph for top 10 videos with most views
+    top_10 = get_top_10_viewCount(df)
+    top_10.plot.bar(x='youtubeId', y='viewCount', rot=0)
+    plt.title('Top 10 videos with most views')
+    plt.savefig('top_10_views.jpg')
+    
+    #plot bar graph for top 10 videos with most likes
+    top_10_likes = get_bottom_10_viewCount(df)
+    top_10_likes.plot.bar(x='youtubeId', y='viewCount', rot=0)
+    plt.title('Top 10 videos with most views')
+    plt.savefig('bottom_10_views.jpg')
+
+
 
 if __name__ == '__main__':
     # Read CSV file into pandas DataFrame and extract youtube ids 
@@ -236,6 +253,9 @@ if __name__ == '__main__':
     #Getting Statistics
     print("******Getting Statistics******")
     get_stats(df)
+    
+    #plot
+    plot_bar(df)
     
     #getting comments for each video. if the file comments.csv exists, read from the file
     print("******Fetching comments******")
