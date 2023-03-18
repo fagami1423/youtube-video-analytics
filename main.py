@@ -1,7 +1,7 @@
 """
 Name: Raj KUmar Phagami
 ID: C0846583
-Module: 
+Module: 2023@_AML 3204_2 Social Media Analytics
 Subject: Assignment 1
 """
 
@@ -41,18 +41,24 @@ def get_video_data(video_id):
             part="snippet,contentDetails,statistics",
             id=video_id
         ).execute()
-        data = [
-            video_id,
-            video_response['items'][0]['snippet']['description'],
-            int(video_response['items'][0]['statistics']['viewCount']),
-            int(video_response['items'][0]['statistics']['likeCount'] if 'likeCount' in video_response['items'][0]['statistics'] else 0),
-            int(video_response['items'][0]['statistics']['dislikeCount'] if 'dislikeCount' in video_response['items'][0]['statistics'] else 0),
-            int(video_response['items'][0]['statistics']['commentCount'] if 'dislikeCount' in video_response['items'][0]['statistics'] else 0),
-            video_response['items'][0]['contentDetails']['duration'],
-            int(video_response['items'][0]['statistics']['favoriteCount'])
-        ]
-        return data
-    except Exception as e:
+        if len(video_response['items']) == 0:
+            print(f"Video not found: {video_id}")
+            return []
+        else:
+            data = [
+                video_id,
+                video_response['items'][0]['snippet']['title'],
+                video_response['items'][0]['snippet']['description'],
+                int(video_response['items'][0]['statistics']['viewCount'] if 'viewCount' in video_response['items'][0]['statistics'] else 0),
+                int(video_response['items'][0]['statistics']['likeCount'] if 'likeCount' in video_response['items'][0]['statistics'] else 0),
+                int(video_response['items'][0]['statistics']['dislikeCount'] if 'dislikeCount' in video_response['items'][0]['statistics'] else 0),
+                int(video_response['items'][0]['statistics']['commentCount'] if 'dislikeCount' in video_response['items'][0]['statistics'] else 0),
+                video_response['items'][0]['contentDetails']['duration'],
+                int(video_response['items'][0]['statistics']['favoriteCount'])
+            ]
+            return data
+
+    except HttpError as e:
         print(f"An error occurred: {e}")
         return None
     
@@ -76,7 +82,7 @@ def get_video_comments(video_id, max_results=100):
             else:
                 break
         return comments
-    except Exception as e:
+    except HttpError as e:
         print(f"An error occurred: {e}")
         return []
     
@@ -121,7 +127,7 @@ def preprocessing(df):
     #remove numbers
     df['comments_preprocessed'] = df['comments_preprocessed'].str.replace('\d+', '')
     #remove emojis
-    df['comments_preprocessed'] = df['comments_preprocessed'].str.replace('[^\w\s#@/:%.,_-]', '', flags=re.UNICODE)
+    df['comments_preprocessed'] = df['comments_preprocessed'].str.replace('[^\w\s#@/:%.,_-]', '', flags=re.UNICODE, regex=True)
     #remove whitespace
     df['comments_preprocessed'] = df['comments_preprocessed'].str.strip()
     #tokenize the text using tokenizer
@@ -134,26 +140,34 @@ def preprocessing(df):
 
 # Create a DataFrame from the comments dictionary id and comments
 def get_comments(filtered_ids, new_columns):
-    comments = {}
-    for video in filtered_ids:
-        comments[video] = get_video_comments(video)
-    mappped_comments = []
-    for key, value in comments.items():
-        if value!=[]:
-            for comment in value:
-                mappped_comments.append([key, comment])
-    df_comments = pd.DataFrame(mappped_comments, columns=new_columns)
-    df_comments.to_csv('comments.csv', index=False)
-    return df_comments
+    try:
+        comments = {}
+        for video in filtered_ids:
+            comments[video] = get_video_comments(video)
+        mappped_comments = []
+        for key, value in comments.items():
+            if value!=[]:
+                for comment in value:
+                    mappped_comments.append([key, comment])
+        df_comments = pd.DataFrame(mappped_comments, columns=new_columns)
+        df_comments.to_csv('comments.csv', index=False)
+        return df_comments
+    except HttpError as e:
+        print(f"An error occurred: {e}")
+        return None
+
 
 # Get data for each video and store in a list
 def get_youtube_data(filtered_ids, columns):
     video_data_list = []
-    for video in filtered_ids:
+    for index,video in enumerate(filtered_ids):
         video_data = get_video_data(video)
         if video_data is not None:
             video_data_list.append(video_data)
+        if index == 100:
+            break
     df = pd.DataFrame(video_data_list,columns=columns)
+    df.to_csv('video_data.csv', index=False)
     return df
 
 # list of top 10 viewcount videos
@@ -183,7 +197,7 @@ def get_top_10_dislikeCount(df):
 
 #Video with maximum duration
 def get_max_duration(df):
-    df['duration'] = df['duration'].apply(lambda x: pd.to_timedelta(x).total_seconds())
+    # df['duration'] = df['duration'].apply(lambda x: pd.to_timedelta(x).total_seconds())
     max_duration = df.sort_values(by='duration', ascending=False).head(1)
     return max_duration
 
@@ -216,22 +230,37 @@ def get_stats(df):
     
 def plot_bar(df):
     #plot bar graph for top 10 videos with most views
-    top_10 = get_top_10_viewCount(df)
-    top_10.plot.bar(x='youtubeId', y='viewCount', rot=0)
-    plt.title('Top 10 videos with most views')
+    top_10 = get_top_10_viewCount(df)  
+    plt.figure(figsize=(10, 6))  # set figure size
+    plt.barh(top_10['title'], top_10['viewCount'])
+    plt.xlabel('Video Title', fontsize=12)  # set x-axis label
+    plt.ylabel('View Count', fontsize=12)  # set y-axis label
+    plt.title('Top 10 Most Viewed Videos', fontsize=14)
+    plt.xticks(rotation=90)  # rotate x-axis labels
+    plt.subplots_adjust(left=0.4)  # adjust bottom margin
     plt.savefig('top_10_views.jpg')
     
-    #plot bar graph for top 10 videos with most likes
-    top_10_likes = get_bottom_10_viewCount(df)
-    top_10_likes.plot.bar(x='youtubeId', y='viewCount', rot=0)
-    plt.title('Top 10 videos with most views')
+    #plot bar graph for top 10 videos with least views
+    top_10_views = get_bottom_10_viewCount(df)
+    plt.figure(figsize=(10, 6))  # set figure size
+    plt.barh(top_10_views['title'], top_10_views['viewCount'])
+    plt.xlabel('Video Title', fontsize=12)  # set x-axis label
+    plt.ylabel('View Count', fontsize=12)  # set y-axis label
+    plt.title('Bottom 10 Viewed Videos', fontsize=14)
+    plt.xticks(rotation=90)  # rotate x-axis labels
+    plt.subplots_adjust(left=0.4)  # adjust bottom margin
     plt.savefig('bottom_10_views.jpg')
     
 def plot_sentiments(df):
     #plot bar graph for top 10 videos with most positive compound sentiment using matplotlib
     top_10_compound = df.sort_values(by='compound', ascending=False).head(10)
-    plt.figsize=(20,10)
-    plt.bar(top_10_compound['youtubeId'], top_10_compound['compound'])
+    top_10_compound['short_comment'] = top_10_compound['comments_preprocessed'].apply(lambda x: ' '.join(x.split()[:10]))
+    
+    plt.figure(figsize=(15, 6))
+    plt.barh(top_10_compound['short_comment'],top_10_compound['compound'])
+    plt.xlabel('Compound Sentiment')
+    plt.ylabel('Comment')
+    plt.subplots_adjust(left=0.5) 
     plt.title('Top 10 videos with most positive compound sentiment')
     plt.savefig('top_10_compound.jpg')
     
@@ -242,26 +271,25 @@ if __name__ == '__main__':
     ids = pd.read_csv('vdoLinks.csv')
     video_ids = ids['youtubeId'].tolist()
     
-    #filter the video ids that works with the YouTube API
-    #check if the file filtered_ids.json exists 
-    if os.path.exists('filtered_ids.json'):
-        with open('filtered_ids.json') as f:
-            filtered_ids = json.load(f)
-    else:
-        filtered_ids = filter_video_ids(video_ids)
-        with open('filtered_ids.json', 'w') as f:
-            json.dump(filtered_ids, f)
+    # #ck if the file filtered_ids.json exists 
+    # if os.path.exists('filtered_ids.json'):
+    #     with open('filtered_ids.json') as f:
+    #         filtered_ids = json.load(f)
+    # else:
+    #     filtered_ids = filter_video_ids(video_ids)
+    #     with open('filtered_ids.json', 'w') as f:
+    #         json.dump(filtered_ids, f)
     
     # Get data for each video and store in a dataframe
-    columns = ['youtubeId', 'description', 'viewCount', 'likeCount', 'dislikeCount', 'commentCount', 'duration', 'favoriteCount']
+    columns = ['youtubeId','title','description', 'viewCount', 'likeCount', 'dislikeCount', 'commentCount', 'duration', 'favoriteCount']
     print("******Fetching Video data******")
-    df = get_youtube_data(filtered_ids, columns)
+    df = get_youtube_data(video_ids, columns)
     
     #Getting Statistics
     print("******Getting Statistics******")
     get_stats(df)
     
-    #plot
+    #plotting bar graphs for top 10 videos with most views and most likes and save the figure to the disk
     plot_bar(df)
     
     #getting comments for each video. if the file comments.csv exists, read from the file
@@ -269,8 +297,8 @@ if __name__ == '__main__':
     if os.path.exists('comments.csv'):
         df_comments = pd.read_csv('comments.csv')
     else:
-        new_columns = ['youtubeId', 'comments']
-        df_comments = get_comments(filtered_ids, new_columns)
+        new_columns = ['youtubeId','comments']
+        df_comments = get_comments(df['youtubeId'].to_list(), new_columns)
         df_comments.to_csv('comments.csv', index=False)
     
     #preprocessing comments
