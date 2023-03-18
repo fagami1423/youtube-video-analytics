@@ -24,10 +24,7 @@ from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
-# Conifguration keys
-DEVELOPER_KEY = "AIzaSyDvVm7GvZC-gc6TxXWt9KIOvgBaCM7VI9I"
-YOUTUBE_API_SERVICE_NAME = "youtube"
-YOUTUBE_API_VERSION = "v3"
+from config import DEVELOPER_KEY, YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION
 
 # creating a youtube client
 youtube_client = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=DEVELOPER_KEY)# Define function to calculate sentiment score using VADER
