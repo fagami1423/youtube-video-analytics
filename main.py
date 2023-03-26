@@ -27,6 +27,7 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from config import DEVELOPER_KEY, YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION
 
 # creating a youtube client
+
 youtube_client = build(YOUTUBE_API_SERVICE_NAME, YOUTUBE_API_VERSION, developerKey=DEVELOPER_KEY)# Define function to calculate sentiment score using VADER
 
 # Define function to get video data from YouTube API
@@ -120,11 +121,11 @@ def preprocessing(df):
     #lower string   
     df['comments_preprocessed'] = df['comments'].str.lower()
     #remove punctuation
-    df['comments_preprocessed'] = df['comments_preprocessed'].str.replace('[^\w\s]','')
+    df['comments_preprocessed'] = df['comments_preprocessed'].str.replace('[^\w\s]','', regex=True)
     #remove numbers
-    df['comments_preprocessed'] = df['comments_preprocessed'].str.replace('\d+', '')
+    df['comments_preprocessed'] = df['comments_preprocessed'].str.replace('\d+', '', regex=True)
     #remove emojis
-    df['comments_preprocessed'] = df['comments_preprocessed'].str.replace('[^\w\s#@/:%.,_-]', '', flags=re.UNICODE, regex=True)
+    df['comments_preprocessed'] = df['comments_preprocessed'].str.replace('[^\w\s#@/:%.,_-]', '', regex=True)
     #remove whitespace
     df['comments_preprocessed'] = df['comments_preprocessed'].str.strip()
     #tokenize the text using tokenizer
@@ -307,6 +308,29 @@ if __name__ == '__main__':
     print("******Vader Sentiment Analysis******")
     df_comments = get_sentiment_score(df_comments)
     plot_sentiments(df_comments)
+    
+    sentiment_counts = df_comments.groupby(['youtubeId', 'sentiment']).size().reset_index(name='counts')
+    sorted_counts = sentiment_counts.sort_values(['youtubeId', 'counts'], ascending=[True, False])
+    
+    positive_counts = sorted_counts[sorted_counts['sentiment'] == 'pos']
+
+    # select top 10 counts
+    # top_10_counts = positive_counts.groupby('youtubeId').head(10)
+    # group by youtubeId and sum counts
+    positive_counts_by_youtubeId = positive_counts.groupby('youtubeId').sum().reset_index()
+
+    # sort by counts and select top 10 youtubeIds
+    top_10_youtubeIds = positive_counts_by_youtubeId.sort_values('counts', ascending=False).head(10)
+
+    # plot youtubeId vs counts
+    plt.figure(figsize=(10,6))
+    plt.bar(top_10_youtubeIds['youtubeId'], top_10_youtubeIds['counts'])
+    plt.xticks(rotation=90)
+    plt.xlabel('YouTube ID')
+    plt.ylabel('Sentiment Counts')
+    plt.title('Top 10 YouTube IDs with Positive Sentiment Counts')
+    plt.savefig("Top_10_vidoes_with_positive.jpg")
+    print(sorted_counts)
     print(df_comments.head(5))
     
     
