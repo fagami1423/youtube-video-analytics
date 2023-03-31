@@ -306,7 +306,7 @@ if __name__ == '__main__':
     
     #Sentinment Analysis
     print("******Vader Sentiment Analysis******")
-    df_comments = get_sentiment_score(df_comments)
+    
     plot_sentiments(df_comments)
     
     sentiment_counts = df_comments.groupby(['youtubeId', 'sentiment']).size().reset_index(name='counts')
@@ -318,7 +318,7 @@ if __name__ == '__main__':
     # top_10_counts = positive_counts.groupby('youtubeId').head(10)
     # group by youtubeId and sum counts
     positive_counts_by_youtubeId = positive_counts.groupby('youtubeId').sum().reset_index()
-
+    df_comments = get_sentiment_score(df_comments)
     # sort by counts and select top 10 youtubeIds
     top_10_youtubeIds = positive_counts_by_youtubeId.sort_values('counts', ascending=False).head(10)
 
